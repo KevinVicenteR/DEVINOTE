@@ -1,0 +1,17 @@
+[project]
+name = "devinote"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Kevin Alexander Vicente Rosaldo",email = "soy.ranbo39@gmail.com"}
+]
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi[standard] (>=0.141.1,<0.142.0)",
+    "sqlmodel (>=0.0.47,<0.0.48)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
