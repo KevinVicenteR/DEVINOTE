@@ -1,5 +1,7 @@
 from pydantic import Field
-from pydantic_settings import BaseSettings
+from pathlib import Path
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Setting(BaseSettings):
     DATABASE_URL: str = Field(..., alias="DATABASE_URL")
@@ -7,9 +9,11 @@ class Setting(BaseSettings):
     JWT_ALG: str = Field(default="HS256", alias="JWT_ALG")
     JWT_EXPIRES_MIN: int = Field(default=60 * 24, alias="JWT_EXPIRES_MIN")
     PROJECT_NAME: str = "Devinote"
-    
-    class config():
-        env_file =".env"
-    
+
+    model_config = SettingsConfigDict(
+        env_file=Path(__file__).resolve().parents[2] / ".env",
+        env_file_encoding="utf-8",
+    )
+
 
 setting = Setting()
