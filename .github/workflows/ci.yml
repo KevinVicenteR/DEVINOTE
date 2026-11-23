@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [Dev]
+  pull_request:
+    branches: [Dev]
+  workflow_dispatch:
+
+# Si llega un push nuevo a la misma rama, cancela la ejecución anterior.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: 'sqlite://'
+      JWT_SECRET: 'ci-test-secret-with-at-least-32-characters'
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Instalar Poetry
+        run: pipx install "poetry==2.5.2"
+
+      - name: Cachear .venv
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-py3.14-${{ hashFiles('poetry.lock') }}
+
+      - name: Instalar dependencias
+        run: |
+          poetry install --no-root
+          poetry run pip install --quiet pytest pytest-cov
+
+      - name: Ejecutar tests
+        run: >
+          poetry run pytest tests
+          --cov=app --cov=main
+          --cov-report=xml
+          --junitxml=test-results.xml
+
+      - name: Guardar resultados
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            coverage.xml
+            test-results.xml
+
+  sonar:
+    name: SonarQube Cloud
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - name: Avisar si falta el secreto
+        if: env.SONAR_TOKEN == ''
+        run: echo "::warning::Falta el secreto SONAR_TOKEN; se omite el análisis de Sonar."
+
+      - uses: actions/checkout@v5
+        if: env.SONAR_TOKEN != ''
+        with:
+          fetch-depth: 0 # Sonar necesita el historial completo para el análisis de código nuevo
+
+      - uses: actions/download-artifact@v5
+        if: env.SONAR_TOKEN != ''
+        with:
+          name: test-results
+
+      - name: Analizar
+        if: env.SONAR_TOKEN != ''
+        uses: SonarSource/sonarqube-scan-action@v6
+        with:
+          args: -Dsonar.qualitygate.wait=true

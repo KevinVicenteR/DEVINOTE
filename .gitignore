@@ -2,3 +2,6 @@
 __pycache__/
 .venv/
 
+# Variables de entorno con secretos (usa .env.example como plantilla)
+.env
+
